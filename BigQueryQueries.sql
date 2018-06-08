@@ -84,3 +84,6 @@ ORDER BY AVG_Bid_Price DESC;
 SELECT DOMAIN, HOUR(Event_Time) AS HourOfDay, AVG(( DBM_Bid_Price__USD_/1000000)) AS AVG_Bid_Price, AVG(( DBM_Media_Cost__USD_/1000000)) AS AVG_Clear_Price FROM [focus-terra-177621:Lufthansa_test.Lufthansa_Impression_Logs] 
 GROUP BY DOMAIN, HourOfDay
 ORDER BY AVG_Bid_Price DESC;
+
+/*Averages by Device Type*/
+SELECT device_type, AVG(buyer_bid) AS avg_bid, AVG( media_cost_dollars_cpm) AS avg_cost FROM [xaxis-1:Xaxis_Analytics.AN_ImpressionLog] GROUP BY device_type;
