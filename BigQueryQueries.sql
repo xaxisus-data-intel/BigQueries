@@ -74,3 +74,13 @@ FROM `focus-terra-177621.Lufthansa_test.Lufthansa_Impression_Logs` AS A
 LEFT JOIN `focus-terra-177621.Lufthansa_test.Lufthansa_Activity_Logs` AS B 
 ON A.DBM_Auction_ID = B.DBM_Auction_ID
 WHERE A.Event_Date BETWEEN '2018-04-01' AND '2018-04-03';
+
+/*Grouping Domain bid patterns by DoW*/
+SELECT DOMAIN, FORMAT_DATE('%A', Event_Date) AS DoW, AVG(( DBM_Bid_Price__USD_/1000000)) AS AVG_Bid_Price, AVG(( DBM_Media_Cost__USD_/1000000)) AS AVG_Clear_Price FROM `focus-terra-177621.Lufthansa_test.Lufthansa_Impression_Logs`
+GROUP BY DOMAIN, DoW
+ORDER BY AVG_Bid_Price DESC;
+
+/*Grouping Domain Bid Patterns by Hour Of Day*/
+SELECT DOMAIN, HOUR(Event_Time) AS HourOfDay, AVG(( DBM_Bid_Price__USD_/1000000)) AS AVG_Bid_Price, AVG(( DBM_Media_Cost__USD_/1000000)) AS AVG_Clear_Price FROM [focus-terra-177621:Lufthansa_test.Lufthansa_Impression_Logs] 
+GROUP BY DOMAIN, HourOfDay
+ORDER BY AVG_Bid_Price DESC;
