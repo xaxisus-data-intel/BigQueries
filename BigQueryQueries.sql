@@ -87,3 +87,99 @@ ORDER BY AVG_Bid_Price DESC;
 
 /*Averages by Device Type*/
 SELECT device_type, AVG(buyer_bid) AS avg_bid, AVG( media_cost_dollars_cpm) AS avg_cost FROM [xaxis-1:Xaxis_Analytics.AN_ImpressionLog] GROUP BY device_type;
+
+/*Frequency Distribution (Number of unique users with frequency 1, 2, 3, etc)*/
+SELECT A.user_count as Freq_bucket, count(DISTINCT A.user_id_64) AS User_Count
+FROM (
+SELECT count(user_id_64) AS user_count, user_id_64
+FROM [Xaxis_Analytics.AN_ImpressionLog] AS A
+WHERE insertion_order_id = 695953
+AND datetime > '2018-08-01 00:00:00 UTC'
+AND user_id_64 != 0
+GROUP BY 2)
+GROUP BY 1
+ORDER BY 1;
+
+/*Bundling Tactics*/
+select case 
+          when a.insertion_order_id in (795547,714645) then "Bundle A"
+          when a.insertion_order_id in (722362,753916) then "Bundle B"
+          END as tactic_name
+          , sum(a.is_imp)
+          from [xaxis-1:Xaxis_Analytics.AN_ImpressionLog] as a
+where a.is_imp=1
+and insertion_order_id in (795547,714645,722362,753916)
+and datetime >'2018-05-19 14:50:50'
+group by 1
+
+** Overlap Report along with UNIQUE users exposed only to campaign A and Only to campaign B **
+** RUN only the INNER query to get the overlap piece of the Venn diagram **
+** RUN the entire query to get the A-B and B-A piece. Please make sure to change the Insertion_order_id as per the campaign name. We can use this query to dynamically change the campaign/placement name (bundles) as per the requirements.
+** We can also add in the domain names if required (requirement based)
+** Just use the Inner query and remove the condition //a1.insertion_order_id != a2.insertion_order_id// 
+      this would give Total A, Total B and AnB. Once we have the data in excel, we can just subtract Total A from AnB to get Only A and similarly for B
+
+Select 
+A.insertion_order_id as Campaign_A,
+COUNT(DISTINCT uo1.user_id_64) as Unique_Users_A,
+from xaxis-1.Xaxis_Analytics.AN_ImpressionLog as A
+where A.insertion_order_id= 719065
+and A.is_imp=1
+and A.datetime between '2018-08-01' and '2018-08-05'
+and A.user_id_64 NOT IN 
+                        (SELECT
+                          a1.insertion_order_id as Campaign_1,
+                          a2.insertion_order_id as Campaign_2,
+                          COUNT(DISTINCT uo1.user_id_64) as Overlap_users
+                        FROM
+                          xaxis-1.Xaxis_Analytics.AN_ImpressionLog as a1
+                        JOIN
+                          xaxis-1.Xaxis_Analytics.AN_ImpressionLog as a2
+                        ON
+                          (a1.user_id_64 = a2.user_id_64
+                            AND a1.insertion_order_id != a2.insertion_order_id
+                            )
+                        WHERE a1.insertion_order_id in (719065,718827)
+                        and a2.insertion_order_id in (719065,718827)
+                        and a1.is_imp = 1
+                        and a2.is_imp = 1
+                        and a1.datetime between '2018-08-01' and '2018-08-05'
+                        and a2.datetime between '2018-08-01' and '2018-08-05'
+                        GROUP BY
+                         a1.insertion_order_id,
+                          a2.insertion_order_id) as B
+                          
+                          
+                          
+                          
+                          
+ ** Reach and Frequency--- overall reach and Unique reach broken down by each frequency bucket----- ***
+ 
+ SELECT B.user_count as Freq_bucket, count(DISTINCT B.user_id_64) AS User_Count
+FROM (
+SELECT count(A.user_id_64) AS user_count, A.user_id_64
+FROM [Xaxis_Analytics.AN_ImpressionLog] AS A
+WHERE A.insertion_order_id = 719065
+AND A.datetime > '2018-08-01 00:00:00 UTC'
+AND A.user_id_64 != 0
+AND A.is_imp=1
+GROUP BY 2) B
+GROUP BY 1
+ORDER BY 1;
+
+/*T2C Query*/
+SELECT A.insertion_order_id, A.is_imp AS Imp, B.post_view_conv AS pv_conv, B.post_click_conv AS pc_convs, A.datetime as impdate, B.datetime as convdate
+FROM [Sample_Query_Test.Blackrock_Imps] AS A
+LEFT JOIN [Sample_Query_Test.Blackrock_convs] AS B
+ON A.auction_id_64 = B.auction_id_64
+WHERE A.datetime > '2018-07-01 00:00:00 UTC' AND A.datetime < '2018-07-31 23:59:59 UTC'
+AND (timestamp_to_SEC(B.datetime) - timestamp_to_SEC(A.datetime)) < 2592000;
+
+/*Attribution with viewability*/
+SELECT A.insertion_order_id, A.view_result, SUM(A.is_imp) AS Imps, SUM(B.post_view_conv) AS pv_convs, SUM(B.post_click_conv) AS pc_convs
+FROM [Sample_Query_Test.Blackrock_Imps] AS A
+LEFT JOIN [Sample_Query_Test.Blackrock_convs] AS B
+ON A.auction_id_64 = B.auction_id_64
+WHERE A.datetime > '2018-07-01 00:00:00 UTC' AND A.datetime < '2018-07-31 23:59:59 UTC'
+AND (timestamp_to_SEC(B.datetime) - timestamp_to_SEC(A.datetime)) < 2592000
+GROUP BY A.insertion_order_id, A.view_result;
